@@ -182,40 +182,15 @@ class ExecuteAllControlNetPreprocessors:
             "expand": graph.finalize(),
         }
 
-# class ControlNetPreprocessorSelector:
-#     @classmethod
-#     def INPUT_TYPES(s):
-#         return {
-#             "required": {
-#                 "preprocessor": (PREPROCESSOR_OPTIONS,),
-#             }
-#         }
-
-#     RETURN_TYPES = (PREPROCESSOR_OPTIONS,)
-#     RETURN_NAMES = ("preprocessor",)
-#     FUNCTION = "get_preprocessor"
-
-#     CATEGORY = "ControlNet Preprocessors"
-
-#     def get_preprocessor(self, preprocessor: str):
-#         return (preprocessor,)
-
-#########################################################################################################################
-# 这是代码修改的部分，替换掉了上面的 ControlNetPreprocessorSelector 节点，
-# 采用类似 sd-webui-controlnet 的统一加载器，把controlnet模型和预处理器放在一起管理。
+##########################################################################################################################
+WEB_DIRECTORY = "./web"
 from server import PromptServer
 from aiohttp import web
 import folder_paths, comfy.controlnet
-WEB_DIRECTORY = "./web"
-
-# import git #pip install GitPython #版本检测代码，留作备用。
-# comfyui_version = len(list( git.Repo(os.path.dirname(folder_paths.__file__)).iter_commits('HEAD') ))
-# WEB_DIRECTORY = "./web1" if int(comfyui_version)>3109 else "./web"
-
 @PromptServer.instance.routes.get("/Preprocessor")
 async def getStylesList(request):
-    cnmodel = request.rel_url.query["name"]
-    return web.json_response([{"name":i} for i in PREPROCESSOR_OPTIONS])
+    cnmodelname = request.rel_url.query["name"]
+    return web.json_response([{"name":i} for i in preprocessor_options()])
 
 class ControlNetPreprocessorSelector:
     @classmethod
@@ -231,12 +206,12 @@ class ControlNetPreprocessorSelector:
     OUTPUT_NODE = True
 
     def get_preprocessor(self, cn, image, resolution=512, prompt=None, my_unique_id=None): 
-        cnmodel = comfy.controlnet.load_controlnet( folder_paths.get_full_path("controlnet", cn) )
+        controlnet = comfy.controlnet.load_controlnet( folder_paths.get_full_path("controlnet", cn) )
+        pre = prompt[my_unique_id]["inputs"]['select_styles']
         print(prompt)
-        cnprepro = prompt[my_unique_id]["inputs"]['select_styles']
-        if cnprepro == "none": return (cnmodel, image )
+        if pre == "none": return (controlnet, image )
         else:
-            aux_class = AUX_NODE_MAPPINGS[cnprepro]
+            aux_class = AUX_NODE_MAPPINGS[pre]
             input_types = aux_class.INPUT_TYPES()
             input_types = {
                 **input_types["required"],
@@ -261,10 +236,9 @@ class ControlNetPreprocessorSelector:
                 
             predict = getattr(aux_class(), aux_class.FUNCTION)(**params)
 
-            if isinstance(predict, dict): return (cnmodel,) + predict["result"] 
-            else: return (cnmodel,) + predict
+            if isinstance(predict, dict): return (controlnet,) + predict["result"] 
+            else: return (controlnet,) + predict
 ##########################################################################################################################
-
 
 NODE_CLASS_MAPPINGS = {
     **AUX_NODE_MAPPINGS,
