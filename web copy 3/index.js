@@ -49,7 +49,7 @@ function updatalist(els) { const searchValue = document.querySelector('.searchpr
     els.querySelectorAll('.Preprocessor-tag').forEach(el => { addhide(el,searchValue); }); };  // 同时处理搜索和隐藏逻辑 
 
 app.registerExtension({
-    name: 'comfy.ControlNet Preprocessors.Preprocessor Selector',
+    name: 'comfy.ControlNet Preprocessors.ControlNet Unified Loader',
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if(nodeData.name == 'ControlNetPreprocessorSelector'){ const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function() { this.setProperty("values",[]); this.setSize([300, 350]); 

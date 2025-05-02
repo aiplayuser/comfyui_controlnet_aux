@@ -52,9 +52,10 @@ app.registerExtension({
     name: 'comfy.ControlNet Preprocessors.Preprocessor Selector',
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if(nodeData.name == 'ControlNetPreprocessorSelector'){ const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function() { this.setProperty("values",[]); this.setSize([300, 350]); 
+            nodeType.prototype.onNodeCreated = function() { const styles_id = this.widgets.findIndex((w) => w.name == 'cn'); 
+                this.setProperty("values",[]); this.setSize([300, 350]); 
                 
-                const toolsElement = $el('div.tools', [         
+                const toolsElement = $el('div.tools', [         //添加清空按钮搜索框 
                     $el('button.Empty',{ textContent: 'Empty',
                         onclick:()=>{ selectorlist[0].querySelectorAll(".searchpre").forEach(el=>{ el.value = '' });
                                       selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => {
@@ -63,18 +64,34 @@ app.registerExtension({
                             
                     $el('textarea.searchpre',{ placeholder:"🔎 searchpre",
                         oninput:(e)=>{ selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => { addhide(el,e.target.value); }) } }) 
-                ]);  
-
-                let selector = this.addDOMWidget("select_styles", "btn", $el('div.Preprocessor', [toolsElement, $el("ul.Preprocessor-list", [])]), {
-                    getValue: () => [...selectorlist[1].querySelectorAll(".Preprocessor-tag-selected")].map(el => el.dataset.tag).join(',') || 'none' } );
-                    
+                ]);                
+                const stylesList = $el("ul.Preprocessor-list", []);               
+                let selector = this.addDOMWidget( 'select_styles', "btn", $el('div.Preprocessor', [toolsElement, stylesList] ) ); 
                 let selectorlist = selector.element.children;
-                
-                selectorlist[1].addEventListener('mouseleave', function(e) { updatalist(this); }); 
-                
-                const styles_id = this.widgets.find(w => w.name === 'cn'); 
-                Object.defineProperty( styles_id, 'value', { get:()=> controlnet, set:(value)=>{ controlnet = value; getprepro(selectorlist[1]) } }); 
-                
+
+                // 监听鼠标离开事件  
+                selectorlist[1].addEventListener('mouseleave', function(e) { updatalist(this); });            
+                 
+                //根据controlnet模型返回预处理器列表
+                Object.defineProperty( this.widgets[styles_id], 'value', { get:()=>{ return controlnet },
+                                                                           set:(value)=>{ controlnet = value; getprepro(selectorlist[1]) } })     
+
+                //根据选中状态返回预处理器
+                Object.defineProperty(selector, "value", {
+                    set: (value) => {
+                        setTimeout(_=>{ selectorlist[1].innerHTML = ''; selectorlist[1].append(...getTagList());
+                            selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => {
+                                if (value.split(',').includes(el.dataset.tag)) { el.classList.add("Preprocessor-tag-selected"); el.children[0].checked = true } }) 
+                            updatalist(selectorlist[1]); },300) },
+                    get: () => {
+                        selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => {
+                            if(el.classList.value.indexOf("Preprocessor-tag-selected")>=0){
+                                if(!this.properties["values"].includes(el.dataset.tag)){ this.properties["values"].push(el.dataset.tag); }
+                            }else{ if(this.properties["values"].includes(el.dataset.tag)){
+                                    this.properties["values"]= this.properties["values"].filter(v=>v!=el.dataset.tag); } } });
+                        return this.properties["values"].join(','); }
+                });
+
                 getprepro(selectorlist[1]); return onNodeCreated;
             }
         }

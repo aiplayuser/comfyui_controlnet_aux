@@ -54,7 +54,7 @@ app.registerExtension({
         if(nodeData.name == 'ControlNetPreprocessorSelector'){ const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function() { this.setProperty("values",[]); this.setSize([300, 350]); 
                 
-                const toolsElement = $el('div.tools', [         
+                const toolsElement = $el('div.tools', [         //添加清空按钮搜索框 
                     $el('button.Empty',{ textContent: 'Empty',
                         onclick:()=>{ selectorlist[0].querySelectorAll(".searchpre").forEach(el=>{ el.value = '' });
                                       selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => {
@@ -63,18 +63,24 @@ app.registerExtension({
                             
                     $el('textarea.searchpre',{ placeholder:"🔎 searchpre",
                         oninput:(e)=>{ selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => { addhide(el,e.target.value); }) } }) 
-                ]);  
-
-                let selector = this.addDOMWidget("select_styles", "btn", $el('div.Preprocessor', [toolsElement, $el("ul.Preprocessor-list", [])]), {
-                    getValue: () => [...selectorlist[1].querySelectorAll(".Preprocessor-tag-selected")].map(el => el.dataset.tag).join(',') || 'none' } );
+                ]);    
+                              
+                let selector = this.addDOMWidget( 'select_styles', "btn", $el('div.Preprocessor', [toolsElement, $el("ul.Preprocessor-list", [])] ) ); 
+                Object.defineProperty(selector, "value", { 
+                    get: () => [...selectorlist[1].querySelectorAll(".Preprocessor-tag-selected")].map(el => el.dataset.tag).join(',') || 'none' });
                     
                 let selectorlist = selector.element.children;
-                
-                selectorlist[1].addEventListener('mouseleave', function(e) { updatalist(this); }); 
-                
+
+                // 监听鼠标离开事件  
+                selectorlist[1].addEventListener('mouseleave', function(e) { updatalist(this); });            
+                 
+                //根据controlnet模型返回预处理器列表
                 const styles_id = this.widgets.find(w => w.name === 'cn'); 
-                Object.defineProperty( styles_id, 'value', { get:()=> controlnet, set:(value)=>{ controlnet = value; getprepro(selectorlist[1]) } }); 
+                Object.defineProperty( styles_id, 'value', { get:()=> controlnet, set:(value)=>{ controlnet = value; getprepro(selectorlist[1]) } });     
+
+                //根据选中状态返回预处理器
                 
+
                 getprepro(selectorlist[1]); return onNodeCreated;
             }
         }
