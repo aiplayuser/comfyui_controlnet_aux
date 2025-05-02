@@ -66,6 +66,12 @@ app.registerExtension({
                 ]);  
 
                 let selector = this.addDOMWidget("select_styles", "btn", $el('div.Preprocessor', [toolsElement, $el("ul.Preprocessor-list", [])]), {
+                    setValue(value) {
+                        setTimeout(_=>{ selectorlist[1].innerHTML = ''; selectorlist[1].append(...getTagList());
+                            selectorlist[1].querySelectorAll(".Preprocessor-tag").forEach(el => {
+                                if (value.split(',').includes(el.dataset.tag)) { el.classList.add("Preprocessor-tag-selected"); el.children[0].checked = true } }) 
+                            updatalist(selectorlist[1]); },300);
+                      },
                     getValue: () => [...selectorlist[1].querySelectorAll(".Preprocessor-tag-selected")].map(el => el.dataset.tag).join(',') || 'none' } );
                     
                 let selectorlist = selector.element.children;
